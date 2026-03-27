@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Brain, Mail, Lock, User, Loader2, ArrowRight } from "lucide-react";
+import { Brain, Mail, Lock, User, Loader2, ArrowRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,15 +17,25 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recoveryHint, setRecoveryHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) navigate("/dashboard");
   }, [user, navigate]);
 
+  const sendPasswordSetupEmail = async (targetEmail: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) throw error;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
     setLoading(true);
+    setRecoveryHint(null);
 
     try {
       if (isLogin) {
@@ -69,22 +79,18 @@ const Auth = () => {
       const normalizedMessage = message.toLowerCase();
 
       if (normalizedMessage.includes("invalid login credentials")) {
-        toast.error("This email/password does not match. If you used Google before, use Google or tap Forgot password to set a password.");
+        setRecoveryHint("This email already exists, but this password does not match. If you first used Google or never set a password, send yourself a password setup link below.");
+        toast.error("Invalid login credentials.");
       } else if (normalizedMessage.includes("user already registered")) {
-        if (!isLogin) {
-          const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-            redirectTo: `${window.location.origin}/reset-password`,
-          });
+        setIsLogin(true);
 
-          setIsLogin(true);
-
-          if (resetError) {
-            toast.error("This email already exists. Sign in instead or continue with Google.");
-          } else {
-            toast.success("This email is already registered. We sent you a link to set your password.");
-          }
-        } else {
-          toast.error("This email already exists. Sign in instead, continue with Google, or use Forgot password.");
+        try {
+          await sendPasswordSetupEmail(normalizedEmail);
+          setRecoveryHint("This email is already registered. We sent a password setup link to your inbox — open it, create your password, then sign in here.");
+          toast.success("Password setup email sent.");
+        } catch {
+          setRecoveryHint("This email is already registered. Use Google if that's how you first signed in, or send yourself a password setup link below.");
+          toast.error("This email already exists.");
         }
       } else {
         toast.error(message);
@@ -115,12 +121,8 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
+      await sendPasswordSetupEmail(normalizedEmail);
+      setRecoveryHint("Password setup link sent. Check your email, create a password, then come back and sign in.");
       toast.success("Password reset link sent. Check your email.");
     } catch (err: any) {
       toast.error(err?.message || "Could not send reset email");
@@ -227,6 +229,24 @@ const Auth = () => {
               />
             </div>
 
+            {recoveryHint && (
+              <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <p>{recoveryHint}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full rounded-xl"
+                  onClick={handleForgotPassword}
+                  disabled={loading || !email.trim()}
+                >
+                  Send password setup email
+                </Button>
+              </div>
+            )}
+
             {isLogin && (
               <div className="flex justify-end">
                 <button
@@ -255,7 +275,10 @@ const Auth = () => {
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setRecoveryHint(null);
+              }}
               className="text-primary font-semibold hover:underline"
             >
               {isLogin ? "Sign up" : "Sign in"}
