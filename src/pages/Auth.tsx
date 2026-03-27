@@ -40,7 +40,10 @@ const Auth = () => {
           options: { data: { full_name: name }, emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        if (data.user && !data.user.confirmed_at) {
+        if (data.session) {
+          toast.success("Account created! Welcome!");
+          navigate("/dashboard");
+        } else if (data.user && !data.user.confirmed_at) {
           toast.success("Account created! Check your email to confirm.");
           setEmail(""); setPassword(""); setName("");
           setIsLogin(true);
