@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import ChatBubble from "@/components/ChatBubble";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Admin from "./pages/Admin";
