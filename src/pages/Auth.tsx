@@ -71,8 +71,21 @@ const Auth = () => {
       if (normalizedMessage.includes("invalid login credentials")) {
         toast.error("This email/password does not match. If you used Google before, use Google or tap Forgot password to set a password.");
       } else if (normalizedMessage.includes("user already registered")) {
-        setIsLogin(true);
-        toast.error("This email already exists. Sign in instead, continue with Google, or use Forgot password.");
+        if (!isLogin) {
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+            redirectTo: `${window.location.origin}/reset-password`,
+          });
+
+          setIsLogin(true);
+
+          if (resetError) {
+            toast.error("This email already exists. Sign in instead or continue with Google.");
+          } else {
+            toast.success("This email is already registered. We sent you a link to set your password.");
+          }
+        } else {
+          toast.error("This email already exists. Sign in instead, continue with Google, or use Forgot password.");
+        }
       } else {
         toast.error(message);
       }
