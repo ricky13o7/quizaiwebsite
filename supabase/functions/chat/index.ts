@@ -32,7 +32,8 @@ serve(async (req) => {
 - Breaking down complex problems step by step
 - Quizzing students on topics they want to practice
 
-Keep answers clear, concise, and educational. Use examples when helpful. Format responses with markdown for readability.`,
+Keep answers clear, concise, and educational. Use examples when helpful. Format responses with markdown for readability.
+IMPORTANT: Do NOT use LaTeX math notation like $x$, $$y$$, or \\( \\). Write math in plain text instead (e.g., "x + 5 = 10", "x = 5"). Never wrap math in dollar signs.`,
           },
           ...messages,
         ],
